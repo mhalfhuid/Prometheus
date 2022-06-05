@@ -195,6 +195,25 @@ def BBANDS_15M(coin, base):
 
 	return (upper.values[-1], middle.values[-1], lower.values[-1])
 
+# bb15 = (31906.139306991015, 31658.4305, 31410.72169300898)
+# print(bb15)
+
+def BBRangeToPercent(bbrange, percentage):
+	bbunit = (bbrange[0] - bbrange[2]) / 100
+	priceLevel = (bbunit * percentage) + bbrange[2]
+	return priceLevel
+
+
+def PercOfBBrange(currentPrice, bbrange):
+	bbunit = (bbrange[0] - bbrange[2]) / 100
+	percentage = (currentPrice - bbrange[2]) / bbunit
+	return percentage
+
+
+	
+
+# print(BBRangeToPercent(bb15, 20))
+
 
 def Correlation(coin1, coin2, base):
 	symbol1 = coin1 + base

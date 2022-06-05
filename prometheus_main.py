@@ -15,22 +15,32 @@ path = os.getcwd()
 sys.path.insert(0, path)
 import ex_functions as ef
 import helpfunctions as hp
-import configdb as db
 import talib_functions as ta
+import trade_functions as tf
 
 
 url = 'https://api.binance.com' #binance server
 programVersion = '0.1 gamma'
-trade_interval = 30
+trade_interval = 60
 timeout = 5
 programDuration = 24
 program_end = datetime.now() + timedelta(hours = programDuration)
-coin = 'BTC'
-base = 'USDT'
+coin = 'XMR'
+base = 'BUSD'
 symbol = coin + base
-takeProfit = 0.5
-flow1 = 0
-flow2 = 0
+takeProfit = 0.3
+controlFlowLong = 0
+sellPrice = 0
+
+# short trading
+bbUpperBoundTreshold = 60 #price has to be above treshold factor times upperbound for a sell signal in a shor trade
+mfiShortTreshold = 60 # mfi has to be higher then treshold for a mfi sell signal in a short trade
+
+# long trading
+bbLowerBoundTreshold = 20
+mfiLongTreshold = 20
+
+tradePoolPercentage = 80 #trade with x% of total balance 
 
 
 
@@ -38,65 +48,32 @@ flow2 = 0
 programStart = hp.TimeStamp()
 print('%s: Starting Prometheus version %s' %(programStart, programVersion))
 
-
+tf.UpdateBalance(coin, base)
 
 while datetime.now() < program_end:
 	
 	try:
 		request = requests.get(url, timeout=timeout)
-		mfi15 = ta.MFI_15M(coin, base)
-		bb15 = ta.BBANDS_15M(coin, base)
 
 
-		# mfi60 = ta.MFI_01H(coin, base)
-		# bb60 = ta.BBANDS_01H(coin, base)
-		timestamp = hp.TimeStamp()
-		currentPrice = ef.PriceAction2(symbol)[3]
+		##############################
+		# timestamp = hp.TimeStamp()
+		# currentPrice = hp.round_decimals_down(ef.PriceAction2(symbol)[3],0)
+		# print('%s: currentPrice: %f' %(timestamp,currentPrice))
+		# mfi15 = ta.MFI_15M(coin, base)
+		# print('mfi: %f | upper treshold %f | lower treshold %f' %(mfi15, mfiShortTreshold, mfiLongTreshold))
+		# bb15 = ta.BBANDS_15M(coin, base)
+		# bbpercentage = ta.PercOfBBrange(currentPrice, bb15)
+		# print('bbpercentage: %f | upper treshold %f | lower treshold %f' %(bbpercentage, bbUpperBoundTreshold, bbLowerBoundTreshold))
+		# print('\n')
 
+
+		##############################
+
+		# tradeQuantity = ef.CheckBalance(coin) * (tradePoolPercentage/100)
+		tf.TradeFunctionShort15M(coin, base, takeProfit, bbUpperBoundTreshold, mfiShortTreshold)
+		tf.TradeFunctionLong15M(coin, base, takeProfit, bbLowerBoundTreshold, mfiLongTreshold)
 		
-		# short strategy 15 min interval
-		# print(bb15)
-		bbUpperBound =  ((bb15[0] + bb15[1]) / 2)
-		bbLowerBound = 	((bb15[1] + bb15[2]) / 2)
-		# print(bbUpperBound)
-
-		
-		if currentPrice > bbUpperBound:
-			print('%s BBANDS 15m SELL SIGNAL' %timestamp)
-			if mfi15 > 70:
-				print('%s MFI 15m SELL SIGNAL' % timestamp)
-				print('%s SELL BTC' %timestamp)
-			else:
-				pass
-
-		else:
-			pass
-
-
-
-		if currentPrice < bbLowerBound:
-			print('%s BBANDS 15m BUY SIGNAL' %timestamp)
-			if mfi15 < 20:
-				print('%s MFI 15m BUY SIGNAL' % timestamp)
-				print('%s BUY BTC' %timestamp)
-			else:
-				pass
-
-		else:
-			pass
-
-§
-
-
-
-
-
-
-
-
-
-
-
 
 	except (requests.ConnectionError, requests.Timeout) as exception:
 		print("Internet connection lost..")

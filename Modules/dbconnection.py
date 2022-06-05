@@ -1,2 +1,2 @@
 import sqlite3
-connection = sqlite3.connect('/Users/malcolmhalfhuid/Python/Elysium/Elysium/Data/Database/monitor.db')
+connection = sqlite3.connect('/Users/malcolmhalfhuid/Desktop/Python/Prometheus/Data/PROTRADER.db')

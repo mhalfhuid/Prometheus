@@ -3,6 +3,7 @@ import os, time
 from binance.client import Client
 from binance.enums import *
 from binance.exceptions import BinanceAPIException, BinanceOrderException
+from binance.helpers import round_step_size
 import helpfunctions as hp
 import signature as sig
 from decimal import Decimal
@@ -11,7 +12,7 @@ import time
 from datetime import datetime, timedelta 
 import numpy as np
 import pandas as pd
-import configdb as db
+# import configdb as db
 # import talib
 
 
@@ -77,6 +78,8 @@ def PriceAction2(symbol):
 		return result
 	except:
 		print('error in ef.PriceAction: unable to fetch price')
+		return False
+		
 
 # prices = client.get_all_tickers()
 # print(prices)
@@ -604,12 +607,12 @@ def SimpleBuy(coin, base, quantity):
 	time = hp.TimeStamp()
 	try:
 		order = client.order_market_buy(symbol=symbol,quantity=quantity)
-		print ('%s: MARKET BUY %s succeeded! Order quantity %f.' %(time, symbol, quantity))
-		return True
+		print ('%s: MARKET BUY %s succeeded! Order quantity %f. \n' %(time, symbol, quantity))
+		return order
 
 	except BinanceAPIException as error:
 		print(error)
-		return False
+
 
 # SimpleBuy(coin, base, quantity)	
 
@@ -618,13 +621,13 @@ def SimpleSell(coin, base, quantity):
 	time = hp.TimeStamp()
 	try:
 		order = client.order_market_sell(symbol=symbol,quantity=quantity)
-		print ('%s: MARKET SELL %s succeeded! Order quantity %f.' %(time, symbol, quantity))
-		return True
+		print ('%s: MARKET SELL %s succeeded! Order quantity %f. \n' %(time, symbol, quantity))
+		return order
 
 
 	except BinanceAPIException as error:
 		print(error)
-		return False
+
 
 
 
@@ -1059,5 +1062,54 @@ def RenewOrder(coin, base):
 		# db.SQLInsertOrder(symbol, newOrderId, newTransactTime, price, quantity, 'NEW', 'BUY')
 
 
-# print(CheckBalanceTotal('ETH'))
+# symbol = 'BTCBUSD'
+# quantity = 0.001
+# price = '31000' # buy price
+# stopPrice = '32000' # stop price
+# # order = client.create_oco_order (symbol = symbol, side = SIDE_BUY, quantity = quantity, price = price, stopPrice = stopPrice)
+# order = client.order_limit_buy(symbol = symbol, quantity = quantity, price = price, stopPrice = stopPrice)
+
+# coin = 'XMR'
+# base = 'BUSD'
+# currentPrice = hp.round_decimals_down(PriceAction2(coin+base)[3],0)
+# quantity = CheckBalance(base)
+# quantity = hp.round_decimals_down((quantity / currentPrice),3) #future feature: check lot size depending on coin
+# print(quantity)
+# SimpleSell('XMR','BUSD', 0.24)
+
+
+# info = client.get_symbol_info('XMRBUSD')
+# info = {'symbol': 'XMRBUSD', 'status': 'TRADING', 'baseAsset': 'XMR', 'baseAssetPrecision': 8, 'quoteAsset': 'BUSD', 'quotePrecision': 8, 'quoteAssetPrecision': 8, 'baseCommissionPrecision': 8, 'quoteCommissionPrecision': 8, 'orderTypes': ['LIMIT', 'LIMIT_MAKER', 'MARKET', 'STOP_LOSS_LIMIT', 'TAKE_PROFIT_LIMIT'], 'icebergAllowed': True, 'ocoAllowed': True, 'quoteOrderQtyMarketAllowed': True, 'allowTrailingStop': True, 'isSpotTradingAllowed': True, 'isMarginTradingAllowed': True, 'filters': [{'filterType': 'PRICE_FILTER', 'minPrice': '0.10000000', 'maxPrice': '100000.00000000', 'tickSize': '0.10000000'}, {'filterType': 'PERCENT_PRICE', 'multiplierUp': '5', 'multiplierDown': '0.2', 'avgPriceMins': 5}, {'filterType': 'LOT_SIZE', 'minQty': '0.00100000', 'maxQty': '90000.00000000', 'stepSize': '0.00100000'}, {'filterType': 'MIN_NOTIONAL', 'minNotional': '10.00000000', 'applyToMarket': True, 'avgPriceMins': 5}, {'filterType': 'ICEBERG_PARTS', 'limit': 10}, {'filterType': 'MARKET_LOT_SIZE', 'minQty': '0.00000000', 'maxQty': '2182.21062404', 'stepSize': '0.00000000'}, {'filterType': 'TRAILING_DELTA', 'minTrailingAboveDelta': 10, 'maxTrailingAboveDelta': 2000, 'minTrailingBelowDelta': 10, 'maxTrailingBelowDelta': 2000}, {'filterType': 'MAX_NUM_ORDERS', 'maxNumOrders': 200}, {'filterType': 'MAX_NUM_ALGO_ORDERS', 'maxNumAlgoOrders': 5}], 'permissions': ['SPOT', 'MARGIN']}
+# stepSize = float(info['filters'][2]['stepSize'])
+# amount = 0.0234234
+# rounded_amount = round_step_size(amount, stepSize)
+# print(rounded_amount)
+
+
+def RoundStepSize(symbol, quantity, tradingBudget):
+	info = client.get_symbol_info(symbol)
+	stepSize = float(info['filters'][2]['stepSize'])
+	result = round_step_size(quantity * (tradingBudget/100), stepSize) 
+	return result
+
+# order = client.create_order(
+#     symbol = 'XMRBUSD', 
+#     side = SIDE_BUY, 
+#     type = ORDER_TYPE_STOP_LOSS_LIMIT, 
+#     timeInForce = TIME_IN_FORCE_GTC, 
+#     quantity = 0.1, 
+#     price = 195, 
+#     stopPrice = 190)
+
+# order = client.create_order(
+#     symbol = 'XMRBUSD', 
+#     side = SIDE_SELL, 
+#     type = ORDER_TYPE_STOP_LOSS_LIMIT, 
+#     timeInForce = TIME_IN_FORCE_GTC, 
+#     quantity = 0.1, 
+#     price = 186, 
+#     stopPrice = 188)
+# # info = client.get_symbol_info('XMRBUSD')
+# print(order)
+
 

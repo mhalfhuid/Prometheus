@@ -222,9 +222,11 @@ def TimeStampEpochMS():
 	now = int(time.time())
 	return now * 1000
 
-def StringToDatetime(st):
+def StringToDatetimesec(st):
 	return datetime.datetime.strptime(st, '%Y-%m-%d %H:%M:%S')
 
+def StringToDatetime(st):
+	return datetime.datetime.strptime(st, '%Y-%m-%d %H:%M')
 
 # print(StringToDatetime('2022-05-22 22:08:15'))
 

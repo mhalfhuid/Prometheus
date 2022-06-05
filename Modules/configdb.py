@@ -1,4 +1,4 @@
-# setup config tables in monitor.db
+# setup config tables in PROTRADER.db
 import os, sys
 import sqlite3
 import helpfunctions as hp
@@ -13,169 +13,340 @@ import dbconnection as con
 connection = con.connection
 cursor = connection.cursor()
 
-#----------------------------BEGIN ORDERS TABLE------------------------------------
-# creating config table
-sql_config = """CREATE TABLE IF NOT EXISTS
-ORDERS(id INTEGER PRIMARY KEY, symbol TEXT, orderId INT, transactTime TEXT, price REAL, quantity REAL, status TEXT, side TEXT)"""
-cursor.execute(sql_config)
+#----------------------------BEGIN SHORTTRADE TABLE------------------------------------
+# creating shorttrade table
+sql_create_short_trade_table = """CREATE TABLE IF NOT EXISTS
+SHORTTRADE (id INTEGER PRIMARY KEY, symbol TEXT, interval TEXT, sellOrderId INT, sellTransactTime DATE, sellPrice REAL, buyOrderId INT, buyTransactTime DATE, buyPrice REAL, status TEXT, quantity REAL, stopLimitBuyPrice REAL, stopLimitStatus TEXT)"""
 
-sql_insert_order = """INSERT INTO ORDERS (symbol, orderId, transactTime, price, quantity, status, side) VALUES (?,?,?,?,?,?,?)"""
-def SQLInsertOrder(symbol, orderId, transactTime, price, quantity, status, side):
-	# time_ind = hp.TimeStamp()
-	cursor.execute(sql_insert_order, (symbol, orderId, transactTime, price, quantity, status, side))
+
+
+def SQLCreateShortTradeTable():
+	cursor.execute(sql_create_short_trade_table)
 	connection.commit()
 
-# SQLInsertOrder('ETHUSDC', 688725808, '2022-05-21 01:00', 2050, 26.0, 'NEW', 'BUY')
+SQLCreateShortTradeTable()
 
-# truncating order table
-sql_truncate = """DELETE FROM ORDERS"""
-def SQLTruncateOrderTable():
-	cursor.execute(sql_truncate)
+#----------------------------BEGIN LONGTRADE TABLE------------------------------------
+# creating longtrade table
+sql_create_long_trade_table = """CREATE TABLE IF NOT EXISTS
+LONGTRADE (id INTEGER PRIMARY KEY, symbol TEXT, interval TEXT, buyOrderId INT, buyTransactTime DATE, buyPrice REAL, sellOrderId INT, sellTransactTime DATE, sellPrice REAL, status TEXT, quantity REAL)"""
+
+
+
+def SQLCreateLongTradeTable():
+	cursor.execute(sql_create_long_trade_table)
 	connection.commit()
 
+SQLCreateLongTradeTable()
 
 
-
-# select all orders
-sql_select_order = """SELECT * FROM ORDERS"""
-def SQLSelectOrder():
-	cursor.execute(sql_select_order)
-	ls = cursor.fetchall()
-	return ls
-
-# check specific order
-sql_select_orderid = """SELECT * FROM ORDERS WHERE orderId = ?"""
-def SQLSelectOrderId(orderId):
-	orderId = int(orderId)
-	cursor.execute(sql_select_orderid, (orderId,))
-	ls = cursor.fetchall()
-	return ls
-
-
-sql_select_vw_order = """SELECT * FROM VW_ORDERS"""
-def SQLSelectVWOrder():
-	cursor.execute(sql_select_vw_order)
-	ls = cursor.fetchall()
-	return ls
-
-# update order status
-sql_update_order_status =  """UPDATE ORDERS SET status = ? WHERE orderId = ? """
-def SQLUpdateOrderStatus(status, orderId):
-	cursor.execute(sql_update_order_status, (status, orderId))
+# insert into trades table
+sql_insert_short_trade = """INSERT INTO
+SHORTTRADE (symbol, interval, sellOrderId, sellTransactTime, sellPrice, buyOrderId, buyTransactTime, buyPrice, status, quantity,stopLimitBuyPrice, stopLimitStatus) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)"""
+def SQLInsertShortTrade(symbol, interval, sellOrderId, sellTransactTime, sellPrice, buyOrderId, buyTransactTime, buyPrice, status, quantity, stopLimitBuyPrice, stopLimitStatus):
+	cursor.execute(sql_insert_short_trade, (symbol, interval, sellOrderId, sellTransactTime, sellPrice, buyOrderId, buyTransactTime, buyPrice, status, quantity,stopLimitBuyPrice, stopLimitStatus))
 	connection.commit()
 
 
-# SQLUpdateOrderStatus('FILLED', 688725910.0000000)
+symbol = 'BTCUSDT'
+interval = '15M'
+sellOrderId = 9999
+sellTransactTime = hp.TimeStamp()
+sellPrice = 26000
+buyOrderId = 333
+buyTransactTime = hp.TimeStamp()
+buyPrice = 0
+status = 'FILLED'
+quantity = 0.1
+stopLimitBuyPrice = 0
+stopLimitStatus = 'OPEN'
 
-# delete order
-sql_delete_order = """DELETE FROM ORDERS WHERE orderId = ?"""
-def SQLDeleteOrder(orderId):
-	cursor.execute(sql_delete_order, (orderId,))
+
+
+
+# SQLInsertShortTrade(symbol, interval, sellOrderId, sellTransactTime, sellPrice, buyOrderId, buyTransactTime, buyPrice, status, quantity, stopLimitBuyPrice, stopLimitStatus)
+
+###################################################
+sql_insert_long_trade = """INSERT INTO
+LONGTRADE (symbol, interval, buyOrderId, buyTransactTime, buyPrice, sellOrderId, sellTransactTime, sellPrice, status, quantity) VALUES (?,?,?,?,?,?,?,?,?,?)"""
+def SQLInsertLongTrade(symbol, interval, buyOrderId, buyTransactTime, buyPrice, sellOrderId, sellTransactTime, sellPrice, status, quantity):
+	cursor.execute(sql_insert_long_trade, (symbol, interval, buyOrderId, buyTransactTime, buyPrice, sellOrderId, sellTransactTime, sellPrice, status, quantity))
 	connection.commit()
-	
+
+
+symbol = 'BTCUSDT'
+interval = '15M'
+sellOrderId = 9999
+buyOrderId = 333
+buyTransactTime = hp.TimeStamp()
+buyPrice = 2000
+sellTransactTime = ''
+sellPrice = 4000
+status = 'OPEN'
+quantity = 0.1
+
+
+
+# SQLInsertLongTrade(symbol, interval, buyOrderId, buyTransactTime, buyPrice, sellOrderId, sellTransactTime, sellPrice, status, quantity)
+
+###################################################
+# lookup last control flow
+sql_lookup_last_short_transaction = """SELECT status
+FROM SHORTTRADE
+WHERE sellTransactTime in 
+    (
+        SELECT MAX(sellTransactTime)
+        FROM SHORTTRADE
+    )"""
+
+def SQLLookupLastShortTransaction():
+	cursor.execute(sql_lookup_last_short_transaction)
+	status = cursor.fetchall()
+	if len(status) > 0: 
+		return status[0][0]
+	print('error, no transactions found')
+
+
+###################################################
+# lookup last control flow
+sql_lookup_last_long_transaction = """SELECT status
+FROM LONGTRADE
+WHERE buyTransactTime in 
+    (
+        SELECT MAX(buyTransactTime)
+        FROM LONGTRADE
+    )"""
+
+def SQLLookupLastLongTransaction():
+	cursor.execute(sql_lookup_last_long_transaction)
+	status = cursor.fetchall()
+	if len(status) > 0: 
+		return status[0][0]
+	print('error, no transactions found')
+
+
+##################################################
+
+
+# lookup last buyPrice 
+sql_lookup_buyPrice = """SELECT buyPrice
+FROM SHORTTRADE
+WHERE buyTransactTime in 
+    (
+        SELECT MAX(buyTransactTime)
+        FROM SHORTTRADE
+    )"""
+
+def SQLLookupBuyPrice():
+	cursor.execute(sql_lookup_buyPrice)
+	result = cursor.fetchall()
+	if len(result) > 0: 
+		return result[0][0]
+	print('error no buy price')
+
+# print(SQLLookupBuyPrice())
+
+##################################################
+
+
+# set control flow of last order
+# sql_set_control_flow = """UPDATE TRADES 
+# SET controlFlow = ?
+# WHERE id in (
+#                 SELECT id
+#                 FROM TRADES 
+#                 WHERE transactTime in (
+#                                         SELECT max(transactTime) FROM TRADES
+#                                       )
+#             )"""
+
+# def SQLSetControlFlow(flow):
+# 	cursor.execute(sql_set_control_flow, (flow,))
+# 	connection.commit()
+
+##################################################
+
+
+# get prices of last short trade
+# sql_get_prices = """SELECT sellPrice, buyPrice 
+# FROM SHORTTRADE WHERE sellTransactTime IN (
+# SELECT MAX(sellTransactTime)
+# FROM SHORTTRADE
+# ) """
+
+# def SQLGetPrices():
+# 	cursor.execute(sql_get_prices)
+# 	result = cursor.fetchall()
+# 	if len(result) == 1:
+# 		return result[0]
+# 	else:
+# 		print('error no prices found')
+
+
+# print(SQLGetPrices())
+
+
+
+##################################################
+
+
+# get prices of last short trade
+# sql_get_short_prices = """SELECT sellPrice, buyPrice 
+# FROM SHORTTRADE WHERE sellTransactTime IN (
+# SELECT MAX(sellTransactTime)
+# FROM SHORTTRADE
+# ) """
+
+# def SQLGetShortPrices():
+# 	cursor.execute(sql_get_short_prices)
+# 	result = cursor.fetchall()
+# 	if len(result) == 1:
+# 		return result[0]
+# 	else:
+# 		print('error no prices found')
+
+# print(SQLGetShortPrices())
+
+
+
+##################################################
+
+
+# get prices of last long trade
+# sql_get_long_prices = """SELECT sellPrice, buyPrice 
+# FROM LONGTRADE WHERE buyTransactTime IN (
+# SELECT MAX(buyTransactTime)
+# FROM LONGTRADE
+# ) """
+
+# def SQLGetLongPrices():
+# 	cursor.execute(sql_get_long_prices)
+# 	result = cursor.fetchall()
+# 	if len(result) == 1:
+# 		return result[0]
+# 	else:
+# 		print('error no prices found')
+
+# print(SQLGetLongPrices())
+
+##################################################
+
+buyOrderId = 333
+buyTransactTime = hp.TimeStamp()
+buyPrice = 2000
+status = 'FILLED'
+quantity = 0.1
+
+# buy back after sell
+sql_update_buy_back = """UPDATE shorttrade SET buyOrderId = ?, buyTransactTime = ?, buyPrice = ?, status = ? 
+where sellTransactTime IN (SELECT MAX(sellTransactTime) FROM SHORTTRADE) """
+
+def SQLUpdateBuyBack(buyOrderId, buyTransactTime, buyPrice, status):
+	cursor.execute(sql_update_buy_back, (buyOrderId, buyTransactTime, buyPrice, status))
+	connection.commit()
+
+
+# SQLUpdateBuyBack(buyOrderId, buyTransactTime, buyPrice, status)
+
+
+##################################################
+
+sellOrderId = 333
+sellTransactTime = hp.TimeStamp()
+sellPrice = 2025
+status = 'FILLED'
+quantity = 0.1
+
+# buy back after sell
+sql_update_sell_back = """UPDATE LONGTRADE SET sellOrderId = ?, sellTransactTime = ?, sellPrice = ?, status = ? 
+where buyTransactTime IN (SELECT MAX(buyTransactTime) FROM LONGTRADE) """
+
+def SQLUpdateSellBack(sellOrderId, sellTransactTime, sellPrice, status):
+	cursor.execute(sql_update_sell_back, (sellOrderId, sellTransactTime, sellPrice, status))
+	connection.commit()
+
+# SQLUpdateSellBack(sellOrderId, sellTransactTime, sellPrice, status)
+
+##################################################
+
+
+# buy back after sell
+sql_last_short_transaction = """SELECT buyPrice, sellPrice, quantity, status
+FROM SHORTTRADE WHERE sellTransactTime IN (
+SELECT MAX(sellTransactTime)
+FROM SHORTTRADE
+) """
+
+def SQLLastShortTransaction():
+	cursor.execute(sql_last_short_transaction)
+	result = cursor.fetchall()
+	if len(result) == 1:
+		return result[0]
+	else:
+		print('no quantity')
+
+##################################################
+
+
+sql_last_long_transaction = """SELECT buyPrice, sellPrice, quantity, status
+FROM LONGTRADE WHERE buyTransactTime IN (
+SELECT MAX(buyTransactTime)
+FROM LONGTRADE
+) """
+
+def SQLLastLongTransaction():
+	cursor.execute(sql_last_long_transaction)
+	result = cursor.fetchall()
+	if len(result) == 1:
+		return result[0]
+	else:
+		print('no quantity')
+
+# print(SQLLastLongTransaction())
+
+
 
 #----------------------------BEGIN BALANCE TABLE------------------------------------
-# creating config table
-sql_create_balance = """CREATE TABLE IF NOT EXISTS
-BALANCE(id INTEGER PRIMARY KEY, strategy TEXT, symbol TEXT, balanceTime TEXT, usd_balance REAL)"""
-cursor.execute(sql_create_balance)
-connection.commit()
+# creating balance table
+sql_create_balance_table = """CREATE TABLE IF NOT EXISTS
+BALANCE (id INTEGER PRIMARY KEY, symbol TEXT, measure_time DATE, coin_quantity REAL, base_quantity REAL, dollar_value INT)"""
 
 
+def SQLCreateBalanceTable():
+	cursor.execute(sql_create_balance_table)
+	connection.commit()
 
-sql_insert_balance = """INSERT INTO BALANCE (strategy, symbol,balanceTime, usd_balance) VALUES (?,?,?,?)"""
-def SQLInsertBalance(strategy, symbol, balanceTime, usd_balance):
-	cursor.execute(sql_insert_balance, (strategy, symbol, balanceTime, usd_balance))
+SQLCreateBalanceTable()
+
+
+# insert into trades table
+sql_insert_balance_table = """INSERT INTO
+BALANCE (symbol, measure_time, coin_quantity, base_quantity, dollar_value) VALUES (?,?,?,?,?)"""
+def SQLInsertBalance(symbol, measure_time, coin_quantity, base_quantity, dollar_value):
+	cursor.execute(sql_insert_balance_table, (symbol, measure_time, coin_quantity, base_quantity, dollar_value))
 	connection.commit()
 
 
-sql_last_balance = """SELECT MAX(DATETIME(balanceTime)) FROM BALANCE"""
+symbol = 'BTCUSDT'
+measure_time = hp.StringToDatetime(hp.TimeStamp())
+coin_quantity = 23
+base_quantity = 21
+dollar_value = 224
+# SQLInsertBalance(symbol, measure_time, coin_quantity, base_quantity, dollar_value)
+
+
+sql_last_balance = """SELECT * FROM BALANCE WHERE measure_time IN (SELECT MAX(measure_time) 
+FROM BALANCE)"""
 def SQLLastBalance():
 	cursor.execute(sql_last_balance)
 	result = cursor.fetchall()
-	if result[0][0] != None:
-		return result[0][0]
-	else: 
-		return None
-
-# print(SQLLastBalance())
-#----------------------------BEGIN TRADE TABLE------------------------------------
-
-# defining trade status table
-# sql_init_trade = """CREATE TABLE IF NOT EXISTS
-# TRADES(id INTEGER PRIMARY KEY, symbol TEXT, orderId INT, transactTime TEXT, price REAL, quantity REAL, status TEXT, side TEXT)"""
-# cursor.execute(sql_init_trade)
-
-# # trade queries
-# # sql_select_trade = """SELECT * FROM TRADE"""
-# sql_insert_trade = """INSERT INTO TRADES (symbol, orderId, transactTime, price, quantity,status, side) VALUES (?,?,?,?,?)"""
-# def SQLInsertTrade(symbol, orderId, transactTime, price, quantity,status, side):
-# 	cursor.execute(sql_insert_order, (symbol, orderId, transactTime, price, quantity,status, side))
-# 	connection.commit()
-# sql_adjust_trade_status = """UPDATE TRADE SET status = ?, status_change = ? WHERE buyorder_id = ? """
-# sql_get_trade_status = """SELECT status FROM TRADE WHERE buyorder_id = ? """
-# sql_get_status_change = """SELECT status_change FROM TRADE WHERE buyorder_id = ? """
-# sql_close_trade = """UPDATE TRADE SET sellside = 'FILLED', sellorder_id = ?, status_change = ?, sellprice = ?, status = 3 WHERE trade_id IN (SELECT max(trade_id) FROM TRADE WHERE tradestatusconfig_id = ? )  """
-# sql_open_trade = """INSERT INTO TRADE (tradestatusconfig_id, buyside, buyorder_id, buyprice, sellside, sellorder_id, sellprice, status, status_change, quantity) VALUES (?,?,?,?, ?, ?, ?, ?, ?, ?)"""
-# sql_trade_interval = """SELECT interval FROM CONFIG WHERE config_id in  (SELECT tradestatusconfig_id FROM TRADE WHERE buyorder_id = ?)"""
-# sql_last_trade = """SELECT * FROM TRADE WHERE trade_id IN (SELECT max(trade_id) FROM TRADE WHERE tradestatusconfig_id = ? ) """
-# sql_update_last_trade_status = """UPDATE TRADE SET sellorder_id = ?, status = ? WHERE trade_id IN (SELECT max(trade_id) FROM TRADE WHERE tradestatusconfig_id = ? )  """
-# buyOrderId = 749057305
-
-
-
-
-def SQLLastTrade(tradeStatusConfigId):
-	cursor.execute(sql_last_trade, (tradeStatusConfigId,) )
-	result = cursor.fetchall()
-	if result == []:
-		return result
-	else:
+	if len(result)>0:
 		return result[0]
-
-
-# print(SQLLastTrade(3))
-
-
-# get status
-def SQLGetTradeStatus(buyOrderId):
-	cursor.execute(sql_get_trade_status, (buyOrderId,) )
-	status = cursor.fetchall()[0][0]
-	return status
+	else:
+		return 'empty balance'
 
 
 
-def SQLUpdateLastTradeStatus(orderId, tradeStatusConfigId, status):
-	cursor.execute(sql_update_last_trade_status,(orderId, status, tradeStatusConfigId ) )
-	connection.commit()
-
-
-# SQLUpdateLastTradeStatus(1, 1)
-
-configId = 1
-buyOrderId = 749967272
-buyPrice = 64566.52
-statusChange = '2021-11-12 02:14'
-quantity = 0.00047
-
-def SQLOpenTrade(configId, buyOrderId, buyPrice, statusChange, quantity):
-	buySide = 'FILLED'
-	sellSide = ''
-	sellOrderId = 0
-	sellPrice = 0
-	status = 1
-	cursor.execute(sql_open_trade, (configId, buySide, buyOrderId,buyPrice, sellSide, sellOrderId, sellPrice, status, statusChange, quantity) )
-	connection.commit()
-
-
-# define close trade
-def SQLCloseTrade(sellOrderId, transactTime, price, tradeStatusConfig):
-	cursor.execute(sql_close_trade,(sellOrderId, transactTime, price, tradeStatusConfig ) )
-	connection.commit()
-
-
-#----------------------------END TRADE TABLE------------------------------------
 
 
 
-	
