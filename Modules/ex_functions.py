@@ -12,6 +12,7 @@ import time
 from datetime import datetime, timedelta 
 import numpy as np
 import pandas as pd
+import configdb as db
 # import configdb as db
 # import talib
 
@@ -611,6 +612,7 @@ def SimpleBuy(coin, base, quantity):
 		return order
 
 	except BinanceAPIException as error:
+		return False
 		print(error)
 
 
@@ -626,6 +628,7 @@ def SimpleSell(coin, base, quantity):
 
 
 	except BinanceAPIException as error:
+		return False
 		print(error)
 
 
@@ -1089,27 +1092,116 @@ def RenewOrder(coin, base):
 def RoundStepSize(symbol, quantity, tradingBudget):
 	info = client.get_symbol_info(symbol)
 	stepSize = float(info['filters'][2]['stepSize'])
-	result = round_step_size(quantity * (tradingBudget/100), stepSize) 
-	return result
+	if isinstance(stepSize, float):
+		result = round_step_size(quantity * (tradingBudget/100), stepSize) 
+		return result
+	else:
+		print('RoundStepSize error')
 
-# order = client.create_order(
-#     symbol = 'XMRBUSD', 
-#     side = SIDE_BUY, 
-#     type = ORDER_TYPE_STOP_LOSS_LIMIT, 
-#     timeInForce = TIME_IN_FORCE_GTC, 
-#     quantity = 0.1, 
-#     price = 195, 
-#     stopPrice = 190)
 
-# order = client.create_order(
-#     symbol = 'XMRBUSD', 
-#     side = SIDE_SELL, 
-#     type = ORDER_TYPE_STOP_LOSS_LIMIT, 
-#     timeInForce = TIME_IN_FORCE_GTC, 
-#     quantity = 0.1, 
-#     price = 186, 
-#     stopPrice = 188)
-# # info = client.get_symbol_info('XMRBUSD')
-# print(order)
 
+def StopLossBuyLimit(symbol, quantity, stopLimitPrice):
+	stopPrice = hp.round_decimals_down(stopLimitPrice * 0.995,1) 
+
+	try:
+		order = client.create_order(symbol = symbol, side = SIDE_BUY, type = ORDER_TYPE_STOP_LOSS_LIMIT, 
+			timeInForce = TIME_IN_FORCE_GTC, quantity = quantity, price = stopLimitPrice, stopPrice = stopPrice)
+		print ('STOP LOSS BUY LIMIT at %f succeeded!' %stopLimitBuyPrice)
+	except BinanceAPIException as error:
+		print(error)
+		return False
+
+
+def OCOSellOrder(symbol, quantity, price, stopLimitPrice):
+	stopPrice = hp.round_decimals_down(stopLimitPrice * 1.005,1)
+	
+	try:
+		order = client.order_oco_sell( symbol = symbol, quantity = quantity, price = price, stopPrice = stopPrice,
+		stopLimitPrice = stopLimitPrice, stopLimitTimeInForce = 'FOK'
+		)
+		print ('OCO SELL ORDER succeeded at %f and stop sell price %f!' %(price, stopLimitPrice))
+		orderId = order['orders'][0]['orderId']
+		return orderId
+	except BinanceAPIException as error:
+		print(error)
+		return False
+
+# symbol = 'XMRBUSD'
+# quantity = 0.241
+# buyPrice = 184
+# takeProfit = 0.5
+# sellPrice = 185.8#hp.round_decimals_down(buyPrice * (1 + (takeProfit/100)),2)
+# stopLimitSellPerc = 3.0
+# stopSellPrice = 178.4#hp.round_decimals_down(buyPrice * (1 - (stopLimitSellPerc/100)),2)
+# # print('----')
+# # print('sellPrice %f' %sellPrice)
+# # print('stopSellPrice %f' %stopSellPrice )
+# stopLimitSellPrice = hp.round_decimals_down(stopSellPrice * 0.99,1)
+# # print('stopLimitSellPrice %f' %stopLimitSellPrice )
+# # print('----')
+
+# # print(sellPrice)
+# # print(stopSellPrice)
+# # print(stopLimitSellPrice)
+# order = client.order_oco_sell( symbol = symbol, quantity = quantity, price = sellPrice, stopPrice = stopSellPrice,
+# 	stopLimitPrice = stopLimitSellPrice, stopLimitTimeInForce = 'FOK')
+
+
+
+def OCOBuyOrder(symbol, quantity, price, stopLimitPrice):
+	stopPrice = hp.round_decimals_down(stopLimitPrice * 0.995,1)
+	
+	try:
+		order = client.order_oco_buy(symbol = symbol, quantity = quantity, price = price, stopPrice = stopPrice,
+		stopLimitPrice = stopLimitPrice, stopLimitTimeInForce = 'FOK'
+		)
+		print ('OCO BUY ORDER succeeded at %f and stop buy price %f!' %(price, stopLimitPrice))
+		orderId = order['orders'][0]['orderId']
+		return orderId
+	except BinanceAPIException as error:
+		print(error)
+		return False
+
+# symbol = 'XMRBUSD'
+# quantity = 0.22
+# buyPrice = 160
+# stopLimitBuyPrice = 172 
+# OCOBuyOrder(symbol, quantity, buyPrice, stopLimitBuyPrice)
+
+def CheckOrderStatus(symbol, orderId):
+	try:
+		orderList = client.get_all_orders(symbol= symbol, limit = 100)
+		for order in orderList:
+			if order['orderId'] == orderId:
+				status = order['status']
+				return status
+	except BinanceAPIException as error:
+		print(error)
+	
+
+
+
+# print(CheckOrderStatus('XMRBUSD', 130259705))
+# def GetOCOOrder(oco_order):
+# 	if isinstance(oco_order, dict):
+# 		order = oco_order['orders'][0]['orderId']
+# 		print(oco_order)
+# 		return order
+# 	else:
+# 		print('no dict')
+
+# oco_order = {'orderListId': 67994017, 'contingencyType': 'OCO', 'listStatusType': 'EXEC_STARTED', 'listOrderStatus': 'EXECUTING', 'listClientOrderId': 'KR2tTYlVCjABN6GsfIZdTK', 'transactionTime': 1654968488826, 'symbol': 'XMRBUSD', 'orders': [{'symbol': 'XMRBUSD', 'orderId': 130104949, 'clientOrderId': 'IBndB6CMnzrRRBjmr7QKnK'}, {'symbol': 'XMRBUSD', 'orderId': 130104950, 'clientOrderId': 'ApOweszCWvFko8gROFeKau'}], 'orderReports': [{'symbol': 'XMRBUSD', 'orderId': 130104949, 'orderListId': 67994017, 'clientOrderId': 'IBndB6CMnzrRRBjmr7QKnK', 'transactTime': 1654968488826, 'price': '172.00000000', 'origQty': '0.22000000', 'executedQty': '0.00000000', 'cummulativeQuoteQty': '0.00000000', 'status': 'NEW', 'timeInForce': 'FOK', 'type': 'STOP_LOSS_LIMIT', 'side': 'BUY', 'stopPrice': '171.10000000'}, {'symbol': 'XMRBUSD', 'orderId': 130104950, 'orderListId': 67994017, 'clientOrderId': 'ApOweszCWvFko8gROFeKau', 'transactTime': 1654968488826, 'price': '160.00000000', 'origQty': '0.22000000', 'executedQty': '0.00000000', 'cummulativeQuoteQty': '0.00000000', 'status': 'NEW', 'timeInForce': 'GTC', 'type': 'LIMIT_MAKER', 'side': 'BUY'}]}
+# order = oco_order['orders'][0]
+# print(oco_order)
+
+# symbol = 'XMRBUSD'
+# lastOrder = db.SQLLastShortTransaction(symbol)
+# print(lastOrder)
+# ocoBuyOrderId = lastOrder[6]
+
+# status = CheckOrderStatus(symbol, ocoBuyOrderId)
+# print(status)
+# if status == 'FILLED':
+# 	print('BUY OCO %f FILLED CLOSE OCO' %ocoBuyOrderId)
+# 	db.SQLCloseBuyOCO(symbol)
 

@@ -203,6 +203,13 @@ def BBRangeToPercent(bbrange, percentage):
 	priceLevel = (bbunit * percentage) + bbrange[2]
 	return priceLevel
 
+# coin = 'XMR'
+# base = 'BUSD'
+# bb15 = BBANDS_15M(coin, base)
+# print(bb15)
+
+# bbrange = bb15
+# print(BBRangeToPercent(bbrange, 40))
 
 def PercOfBBrange(currentPrice, bbrange):
 	bbunit = (bbrange[0] - bbrange[2]) / 100

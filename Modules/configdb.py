@@ -16,7 +16,7 @@ cursor = connection.cursor()
 #----------------------------BEGIN SHORTTRADE TABLE------------------------------------
 # creating shorttrade table
 sql_create_short_trade_table = """CREATE TABLE IF NOT EXISTS
-SHORTTRADE (id INTEGER PRIMARY KEY, symbol TEXT, interval TEXT, sellOrderId INT, sellTransactTime DATE, sellPrice REAL, buyOrderId INT, buyTransactTime DATE, buyPrice REAL, status TEXT, quantity REAL, stopLimitBuyPrice REAL, stopLimitStatus TEXT)"""
+SHORTTRADE (id INTEGER PRIMARY KEY, symbol TEXT, interval TEXT, sellOrderId INT, sellTransactTime DATE, sellPrice REAL, buyOrderId INT, buyTransactTime DATE, buyPrice REAL, status TEXT, quantity REAL, ocoBuyOrderId INT, stopLimitBuyPerc REAL, stopLimitBuyPrice REAL, stopLimitStatus TEXT)"""
 
 
 
@@ -24,12 +24,12 @@ def SQLCreateShortTradeTable():
 	cursor.execute(sql_create_short_trade_table)
 	connection.commit()
 
-SQLCreateShortTradeTable()
+# SQLCreateShortTradeTable()
 
 #----------------------------BEGIN LONGTRADE TABLE------------------------------------
 # creating longtrade table
 sql_create_long_trade_table = """CREATE TABLE IF NOT EXISTS
-LONGTRADE (id INTEGER PRIMARY KEY, symbol TEXT, interval TEXT, buyOrderId INT, buyTransactTime DATE, buyPrice REAL, sellOrderId INT, sellTransactTime DATE, sellPrice REAL, status TEXT, quantity REAL)"""
+LONGTRADE (id INTEGER PRIMARY KEY, symbol TEXT, interval TEXT, buyOrderId INT, buyTransactTime DATE, buyPrice REAL, sellOrderId INT, sellTransactTime DATE, sellPrice REAL, status TEXT, quantity REAL, ocoSellOrderId INT,stopLimitSellPerc REAL, stopLimitSellPrice REAL, stopLimitStatus TEXT)"""
 
 
 
@@ -37,18 +37,18 @@ def SQLCreateLongTradeTable():
 	cursor.execute(sql_create_long_trade_table)
 	connection.commit()
 
-SQLCreateLongTradeTable()
+# SQLCreateLongTradeTable()
 
 
 # insert into trades table
 sql_insert_short_trade = """INSERT INTO
-SHORTTRADE (symbol, interval, sellOrderId, sellTransactTime, sellPrice, buyOrderId, buyTransactTime, buyPrice, status, quantity,stopLimitBuyPrice, stopLimitStatus) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)"""
-def SQLInsertShortTrade(symbol, interval, sellOrderId, sellTransactTime, sellPrice, buyOrderId, buyTransactTime, buyPrice, status, quantity, stopLimitBuyPrice, stopLimitStatus):
-	cursor.execute(sql_insert_short_trade, (symbol, interval, sellOrderId, sellTransactTime, sellPrice, buyOrderId, buyTransactTime, buyPrice, status, quantity,stopLimitBuyPrice, stopLimitStatus))
+SHORTTRADE (symbol, interval, sellOrderId, sellTransactTime, sellPrice, buyOrderId, buyTransactTime, buyPrice, status, quantity,ocoBuyOrderId, stopLimitBuyPerc, stopLimitBuyPrice, stopLimitStatus) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)"""
+def SQLInsertShortTrade(symbol, interval, sellOrderId, sellTransactTime, sellPrice, buyOrderId, buyTransactTime, buyPrice, status, quantity, ocoBuyOrderId, stopLimitBuyPerc, stopLimitBuyPrice, stopLimitStatus):
+	cursor.execute(sql_insert_short_trade, (symbol, interval, sellOrderId, sellTransactTime, sellPrice, buyOrderId, buyTransactTime, buyPrice, status, quantity,ocoBuyOrderId, stopLimitBuyPerc, stopLimitBuyPrice, stopLimitStatus))
 	connection.commit()
 
 
-symbol = 'BTCUSDT'
+symbol = 'XMRBUSD'
 interval = '15M'
 sellOrderId = 9999
 sellTransactTime = hp.TimeStamp()
@@ -59,18 +59,19 @@ buyPrice = 0
 status = 'FILLED'
 quantity = 0.1
 stopLimitBuyPrice = 0
+stopLimitBuyPerc = 1.5
 stopLimitStatus = 'OPEN'
+ocoBuyOrderId = 0
 
 
 
-
-# SQLInsertShortTrade(symbol, interval, sellOrderId, sellTransactTime, sellPrice, buyOrderId, buyTransactTime, buyPrice, status, quantity, stopLimitBuyPrice, stopLimitStatus)
+# SQLInsertShortTrade(symbol, interval, sellOrderId, sellTransactTime, sellPrice, buyOrderId, buyTransactTime, buyPrice, status, quantity, ocoBuyOrderId, stopLimitBuyPerc, stopLimitBuyPrice, stopLimitStatus)
 
 ###################################################
 sql_insert_long_trade = """INSERT INTO
-LONGTRADE (symbol, interval, buyOrderId, buyTransactTime, buyPrice, sellOrderId, sellTransactTime, sellPrice, status, quantity) VALUES (?,?,?,?,?,?,?,?,?,?)"""
-def SQLInsertLongTrade(symbol, interval, buyOrderId, buyTransactTime, buyPrice, sellOrderId, sellTransactTime, sellPrice, status, quantity):
-	cursor.execute(sql_insert_long_trade, (symbol, interval, buyOrderId, buyTransactTime, buyPrice, sellOrderId, sellTransactTime, sellPrice, status, quantity))
+LONGTRADE (symbol, interval, buyOrderId, buyTransactTime, buyPrice, sellOrderId, sellTransactTime, sellPrice, status, quantity, ocoSellOrderId, stopLimitSellPerc, stopLimitSellPrice, stopLimitStatus) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)"""
+def SQLInsertLongTrade(symbol, interval, buyOrderId, buyTransactTime, buyPrice, sellOrderId, sellTransactTime, sellPrice, status, quantity, ocoSellOrderId, stopLimitSellPerc, stopLimitSellPrice, stopLimitStatus):
+	cursor.execute(sql_insert_long_trade, (symbol, interval, buyOrderId, buyTransactTime, buyPrice, sellOrderId, sellTransactTime, sellPrice, status, quantity,ocoSellOrderId, stopLimitSellPerc, stopLimitSellPrice, stopLimitStatus))
 	connection.commit()
 
 
@@ -82,12 +83,16 @@ buyTransactTime = hp.TimeStamp()
 buyPrice = 2000
 sellTransactTime = ''
 sellPrice = 4000
-status = 'OPEN'
+status = 'FILLED'
 quantity = 0.1
+stopLimitSellPrice = 0
+stopLimitSellPerc = 2.5
+stopLimitStatus = 'OPEN'
+ocoSellOrderId = 0
 
 
 
-# SQLInsertLongTrade(symbol, interval, buyOrderId, buyTransactTime, buyPrice, sellOrderId, sellTransactTime, sellPrice, status, quantity)
+# SQLInsertLongTrade(symbol, interval, buyOrderId, buyTransactTime, buyPrice, sellOrderId, sellTransactTime, sellPrice, status, quantity, ocoSellOrderId, stopLimitSellPerc, stopLimitSellPrice, stopLimitStatus)
 
 ###################################################
 # lookup last control flow
@@ -271,38 +276,44 @@ def SQLUpdateSellBack(sellOrderId, sellTransactTime, sellPrice, status):
 
 
 # buy back after sell
-sql_last_short_transaction = """SELECT buyPrice, sellPrice, quantity, status
-FROM SHORTTRADE WHERE sellTransactTime IN (
+sql_last_short_transaction = """SELECT buyPrice, sellPrice, quantity, status, stopLimitStatus, buyOrderId, ocoBuyOrderId
+FROM SHORTTRADE 
+WHERE sellTransactTime IN (
 SELECT MAX(sellTransactTime)
-FROM SHORTTRADE
+FROM SHORTTRADE WHERE symbol = ?
 ) """
 
-def SQLLastShortTransaction():
-	cursor.execute(sql_last_short_transaction)
+def SQLLastShortTransaction(symbol):
+	cursor.execute(sql_last_short_transaction,(symbol,))
 	result = cursor.fetchall()
 	if len(result) == 1:
 		return result[0]
 	else:
-		print('no quantity')
+		# print('no last order found for this symbol')
+		return False
 
+
+
+# print(SQLLastShortTransaction('XMRBUSD'))
 ##################################################
 
 
-sql_last_long_transaction = """SELECT buyPrice, sellPrice, quantity, status
+sql_last_long_transaction = """SELECT buyPrice, sellPrice, quantity, status, stopLimitStatus, sellOrderId, ocoSellOrderId 
 FROM LONGTRADE WHERE buyTransactTime IN (
 SELECT MAX(buyTransactTime)
-FROM LONGTRADE
+FROM LONGTRADE WHERE symbol = ?
 ) """
 
-def SQLLastLongTransaction():
-	cursor.execute(sql_last_long_transaction)
+def SQLLastLongTransaction(symbol):
+	cursor.execute(sql_last_long_transaction, (symbol,))
 	result = cursor.fetchall()
 	if len(result) == 1:
 		return result[0]
 	else:
-		print('no quantity')
+		# print('no last order found for this symbol')
+		return False
 
-# print(SQLLastLongTransaction())
+# print(SQLLastLongTransaction('BTCUSDT'))
 
 
 
@@ -316,7 +327,7 @@ def SQLCreateBalanceTable():
 	cursor.execute(sql_create_balance_table)
 	connection.commit()
 
-SQLCreateBalanceTable()
+# SQLCreateBalanceTable()
 
 
 # insert into trades table
@@ -344,6 +355,25 @@ def SQLLastBalance():
 		return result[0]
 	else:
 		return 'empty balance'
+
+
+
+
+
+# close buy OCO
+sql_close_buy_oco = """UPDATE SHORTTRADE SET stopLimitStatus = 'CLOSED', status = 'FILLED'
+WHERE sellTransactTime IN (SELECT sellTransactTime FROM SHORTTRADE WHERE symbol = ?)"""
+def SQLCloseBuyOCO(symbol):
+	cursor.execute(sql_close_buy_oco, (symbol,))
+	connection.commit()
+
+# SQLCloseBuyOCO('XMRBUSD')
+
+sql_close_sell_oco = """UPDATE LONGTRADE SET stopLimitStatus = 'CLOSED', status = 'FILLED' 
+WHERE buyTransactTime IN (SELECT buyTransactTime FROM LONGTRADE WHERE symbol = ?)"""
+def SQLCloseSellOCO(symbol):
+	cursor.execute(sql_close_sell_oco, (symbol,))
+	connection.commit()
 
 
 

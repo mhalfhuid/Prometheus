@@ -8,6 +8,24 @@ from datetime import datetime, timedelta
 import time
 
 
+
+'''
+BACKLOG:
+
+-20220605-1 modify UpdateBalance to update based on last update time AND symbol
+-20220605-2 implement stop limit buy order for short trade
+-20220605-3 implement stop limit sell order for long trade
++20220605-4 adjust database to stop limit buy order for short trade
++20220605-5 adjust database to stop limit sell order for long trade
+-20220607-1 start long trade if short trade has finished
+-20220607-2 start short trade if long trade has finished
+-20220607-3 create settings table with tradingbudget, mfiShortTreshold etc.
+-20220611-1 adjust database to oco limit buy order for short trade
+-20220611-2 adjust database to oco limit sell order for short trade
+
+
+
+'''
 os.chdir('Modules')
 path = os.getcwd()
 
@@ -28,19 +46,20 @@ program_end = datetime.now() + timedelta(hours = programDuration)
 coin = 'XMR'
 base = 'BUSD'
 symbol = coin + base
-takeProfit = 0.3
+takeProfit = 0.5
 controlFlowLong = 0
 sellPrice = 0
+updateInterval = 4
 
 # short trading
-bbUpperBoundTreshold = 60 #price has to be above treshold factor times upperbound for a sell signal in a shor trade
-mfiShortTreshold = 60 # mfi has to be higher then treshold for a mfi sell signal in a short trade
+bbUpperBoundTreshold = 70 #price has to be above treshold factor times upperbound for a sell signal in a shor trade
+mfiShortTreshold = 70 # mfi has to be higher then treshold for a mfi sell signal in a short trade
 
 # long trading
-bbLowerBoundTreshold = 20
-mfiLongTreshold = 20
+bbLowerBoundTreshold = 30
+mfiLongTreshold = 30
 
-tradePoolPercentage = 80 #trade with x% of total balance 
+# tradePoolPercentage = 80 #trade with x% of total balance 
 
 
 
@@ -48,31 +67,18 @@ tradePoolPercentage = 80 #trade with x% of total balance
 programStart = hp.TimeStamp()
 print('%s: Starting Prometheus version %s' %(programStart, programVersion))
 
-tf.UpdateBalance(coin, base)
+
 
 while datetime.now() < program_end:
 	
 	try:
 		request = requests.get(url, timeout=timeout)
 
-
-		##############################
-		# timestamp = hp.TimeStamp()
-		# currentPrice = hp.round_decimals_down(ef.PriceAction2(symbol)[3],0)
-		# print('%s: currentPrice: %f' %(timestamp,currentPrice))
-		# mfi15 = ta.MFI_15M(coin, base)
-		# print('mfi: %f | upper treshold %f | lower treshold %f' %(mfi15, mfiShortTreshold, mfiLongTreshold))
-		# bb15 = ta.BBANDS_15M(coin, base)
-		# bbpercentage = ta.PercOfBBrange(currentPrice, bb15)
-		# print('bbpercentage: %f | upper treshold %f | lower treshold %f' %(bbpercentage, bbUpperBoundTreshold, bbLowerBoundTreshold))
-		# print('\n')
-
-
-		##############################
-
 		# tradeQuantity = ef.CheckBalance(coin) * (tradePoolPercentage/100)
 		tf.TradeFunctionShort15M(coin, base, takeProfit, bbUpperBoundTreshold, mfiShortTreshold)
 		tf.TradeFunctionLong15M(coin, base, takeProfit, bbLowerBoundTreshold, mfiLongTreshold)
+
+		tf.UpdateBalance('BTC', 'USDT', updateInterval)
 		
 
 	except (requests.ConnectionError, requests.Timeout) as exception:
