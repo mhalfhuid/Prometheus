@@ -82,8 +82,6 @@ def PriceAction2(symbol):
 		return False
 		
 
-# prices = client.get_all_tickers()
-# print(prices)
 
 def CheckBalance(c):
 	try:
@@ -93,7 +91,8 @@ def CheckBalance(c):
 
 		return freeBalance
 	except:
-		print('error in ef.CheckBalance: unable to fetch exchange balance data')
+		print('Error in CheckBalance: %s' %response)
+
 
 
 
@@ -1155,6 +1154,7 @@ def OCOBuyOrder(symbol, quantity, price, stopLimitPrice):
 		order = client.order_oco_buy(symbol = symbol, quantity = quantity, price = price, stopPrice = stopPrice,
 		stopLimitPrice = stopLimitPrice, stopLimitTimeInForce = 'FOK'
 		)
+		
 		print ('OCO BUY ORDER succeeded at %f and stop buy price %f!' %(price, stopLimitPrice))
 		orderId = order['orders'][0]['orderId']
 		return orderId
@@ -1162,10 +1162,10 @@ def OCOBuyOrder(symbol, quantity, price, stopLimitPrice):
 		print(error)
 		return False
 
-# symbol = 'XMRBUSD'
-# quantity = 0.22
-# buyPrice = 160
-# stopLimitBuyPrice = 172 
+# symbol = 'BTCUSDT'
+# quantity = 0.06400
+# buyPrice = 22237
+# stopLimitBuyPrice = 22841 
 # OCOBuyOrder(symbol, quantity, buyPrice, stopLimitBuyPrice)
 
 def CheckOrderStatus(symbol, orderId):
@@ -1173,35 +1173,32 @@ def CheckOrderStatus(symbol, orderId):
 		orderList = client.get_all_orders(symbol= symbol, limit = 100)
 		for order in orderList:
 			if order['orderId'] == orderId:
+				# print(order)
 				status = order['status']
-				return status
+				if status == 'NEW':
+					return status
+				elif status == 'FILLED':
+					if float(order['stopPrice']) == 0.0:
+						status = 'FILLED'
+						return status
+					else: #stop price is executed
+						status = 'CLOSED'
+						return status
+				else:
+					return status
+
 	except BinanceAPIException as error:
 		print(error)
-	
-
-
-
-# print(CheckOrderStatus('XMRBUSD', 130259705))
-# def GetOCOOrder(oco_order):
-# 	if isinstance(oco_order, dict):
-# 		order = oco_order['orders'][0]['orderId']
-# 		print(oco_order)
-# 		return order
-# 	else:
-# 		print('no dict')
-
-# oco_order = {'orderListId': 67994017, 'contingencyType': 'OCO', 'listStatusType': 'EXEC_STARTED', 'listOrderStatus': 'EXECUTING', 'listClientOrderId': 'KR2tTYlVCjABN6GsfIZdTK', 'transactionTime': 1654968488826, 'symbol': 'XMRBUSD', 'orders': [{'symbol': 'XMRBUSD', 'orderId': 130104949, 'clientOrderId': 'IBndB6CMnzrRRBjmr7QKnK'}, {'symbol': 'XMRBUSD', 'orderId': 130104950, 'clientOrderId': 'ApOweszCWvFko8gROFeKau'}], 'orderReports': [{'symbol': 'XMRBUSD', 'orderId': 130104949, 'orderListId': 67994017, 'clientOrderId': 'IBndB6CMnzrRRBjmr7QKnK', 'transactTime': 1654968488826, 'price': '172.00000000', 'origQty': '0.22000000', 'executedQty': '0.00000000', 'cummulativeQuoteQty': '0.00000000', 'status': 'NEW', 'timeInForce': 'FOK', 'type': 'STOP_LOSS_LIMIT', 'side': 'BUY', 'stopPrice': '171.10000000'}, {'symbol': 'XMRBUSD', 'orderId': 130104950, 'orderListId': 67994017, 'clientOrderId': 'ApOweszCWvFko8gROFeKau', 'transactTime': 1654968488826, 'price': '160.00000000', 'origQty': '0.22000000', 'executedQty': '0.00000000', 'cummulativeQuoteQty': '0.00000000', 'status': 'NEW', 'timeInForce': 'GTC', 'type': 'LIMIT_MAKER', 'side': 'BUY'}]}
-# order = oco_order['orders'][0]
-# print(oco_order)
+		status = False
+		return status
+		
+# symbol = 'XMRBUSD'
+# orderList = client.get_all_orders(symbol= symbol, limit = 100)
+# print(orderList)
 
 # symbol = 'XMRBUSD'
-# lastOrder = db.SQLLastShortTransaction(symbol)
-# print(lastOrder)
-# ocoBuyOrderId = lastOrder[6]
-
-# status = CheckOrderStatus(symbol, ocoBuyOrderId)
-# print(status)
-# if status == 'FILLED':
-# 	print('BUY OCO %f FILLED CLOSE OCO' %ocoBuyOrderId)
-# 	db.SQLCloseBuyOCO(symbol)
-
+# ocoSellOrderId = 130701594
+# # print(CheckOrderStatus('XMRBUSD', 130701594))
+# status = CheckOrderStatus(symbol, ocoSellOrderId)
+# if status != 'NEW': #OCO is closed or filled
+# 	db.SQLCloseSellOCO(symbol, status)

@@ -361,22 +361,24 @@ def SQLLastBalance():
 
 
 # close buy OCO
-sql_close_buy_oco = """UPDATE SHORTTRADE SET stopLimitStatus = 'CLOSED', status = 'FILLED'
+sql_close_buy_oco = """UPDATE SHORTTRADE SET stopLimitStatus = ?, status = 'FILLED'
 WHERE sellTransactTime IN (SELECT sellTransactTime FROM SHORTTRADE WHERE symbol = ?)"""
-def SQLCloseBuyOCO(symbol):
-	cursor.execute(sql_close_buy_oco, (symbol,))
+def SQLCloseBuyOCO(symbol, status):
+	cursor.execute(sql_close_buy_oco, (status, symbol))
 	connection.commit()
 
 # SQLCloseBuyOCO('XMRBUSD')
 
-sql_close_sell_oco = """UPDATE LONGTRADE SET stopLimitStatus = 'CLOSED', status = 'FILLED' 
+sql_close_sell_oco = """UPDATE LONGTRADE SET stopLimitStatus = ?, status = 'FILLED' 
 WHERE buyTransactTime IN (SELECT buyTransactTime FROM LONGTRADE WHERE symbol = ?)"""
-def SQLCloseSellOCO(symbol):
-	cursor.execute(sql_close_sell_oco, (symbol,))
+def SQLCloseSellOCO(symbol, status):
+	cursor.execute(sql_close_sell_oco, (status, symbol))
 	connection.commit()
 
 
-
+# symbol = 'XMRBUSD'
+# ocoSellOrderId = 130701594
+# SQLCloseSellOCO(symbol, status)
 
 
 

@@ -12,18 +12,16 @@ import time
 '''
 BACKLOG:
 
--20220605-1 modify UpdateBalance to update based on last update time AND symbol
--20220605-2 implement stop limit buy order for short trade
--20220605-3 implement stop limit sell order for long trade
++20220605-1 modify UpdateBalance to update based on last update time AND symbol
++20220605-2 implement stop limit buy order for short trade
++20220605-3 implement stop limit sell order for long trade
 +20220605-4 adjust database to stop limit buy order for short trade
 +20220605-5 adjust database to stop limit sell order for long trade
--20220607-1 start long trade if short trade has finished
--20220607-2 start short trade if long trade has finished
++20220607-1 start long trade if short trade has finished
++20220607-2 start short trade if long trade has finished
 -20220607-3 create settings table with tradingbudget, mfiShortTreshold etc.
--20220611-1 adjust database to oco limit buy order for short trade
--20220611-2 adjust database to oco limit sell order for short trade
-
-
++20220611-1 adjust database to oco limit buy order for short trade
++20220611-2 adjust database to oco limit sell order for short trade
 
 '''
 os.chdir('Modules')
@@ -49,15 +47,15 @@ symbol = coin + base
 takeProfit = 0.5
 controlFlowLong = 0
 sellPrice = 0
-updateInterval = 4
+updateInterval = 12
 
 # short trading
-bbUpperBoundTreshold = 70 #price has to be above treshold factor times upperbound for a sell signal in a shor trade
-mfiShortTreshold = 70 # mfi has to be higher then treshold for a mfi sell signal in a short trade
+bbUpperBoundTreshold = 81 #price has to be above treshold factor times upperbound for a sell signal in a shor trade
+mfiShortTreshold = 81 # mfi has to be higher then treshold for a mfi sell signal in a short trade
 
 # long trading
-bbLowerBoundTreshold = 30
-mfiLongTreshold = 30
+bbLowerBoundTreshold = 19
+mfiLongTreshold = 19
 
 # tradePoolPercentage = 80 #trade with x% of total balance 
 
@@ -82,6 +80,7 @@ while datetime.now() < program_end:
 		
 
 	except (requests.ConnectionError, requests.Timeout) as exception:
-		print("Internet connection lost..")
+		timestamp = hp.TimeStamp()
+		print("%s: Internet connection lost.." %timestamp)
 
 	time.sleep(trade_interval)

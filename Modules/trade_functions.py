@@ -23,7 +23,7 @@ def TradeFunctionShort15M(coin, base, takeProfit, bbUpperBoundTreshold, mfiShort
 
 	
 	if currentPrice != False:
-		currentPrice = hp.round_decimals_down(currentPrice[3],0)
+		currentPrice = hp.round_decimals_down(currentPrice[3],1)
 		bb15 = ta.BBANDS_15M(coin, base)
 		bbUpperBound = ta.BBRangeToPercent(bb15, bbUpperBoundTreshold)
 		# buyPrice = hp.round_decimals_down(db.SQLLookupBuyPrice(),0)
@@ -74,15 +74,15 @@ def TradeFunctionShort15M(coin, base, takeProfit, bbUpperBoundTreshold, mfiShort
 					stopLimitBuyPrice = hp.round_decimals_down(sellPrice * (1 + (stopLimitBuyPerc/100)),1)
 					stopLimitStatus = 'OPEN'
 					ocoBuyOrderId = ef.OCOBuyOrder(symbol, quantity, buyPrice, stopLimitBuyPrice)
+					print('\n')
 					if ocoBuyOrderId != False: #oco order succeeded
 						db.SQLInsertShortTrade(symbol, interval, orderId, timestamp, sellPrice, 0, 'NONE', buyPrice, status, quantity, ocoBuyOrderId, stopLimitBuyPerc, stopLimitBuyPrice, stopLimitStatus)
 					else:
 						ocoBuyOrderId = 0
 
-	status = ef.CheckOrderStatus(symbol, ocoBuyOrderId)
-	if status == 'FILLED' or status == 'EXPIRED':
-		# print('BUY OCO %f is filled close oco order' %ocoBuyOrderId)
-		db.SQLCloseBuyOCO(symbol)
+		status = ef.CheckOrderStatus(symbol, ocoBuyOrderId)
+		if status != 'NEW': # oco is filled or closed
+			db.SQLCloseBuyOCO(symbol, status)
 
 
 
@@ -96,7 +96,7 @@ def TradeFunctionLong15M(coin, base, takeProfit, bbLowerBoundTreshold, mfiLongTr
 
 	
 	if currentPrice != False:
-		currentPrice = hp.round_decimals_down(currentPrice[3],0)
+		currentPrice = hp.round_decimals_down(currentPrice[3],1)
 		bb15 = ta.BBANDS_15M(coin, base)
 		bbLowerBound = ta.BBRangeToPercent(bb15, bbLowerBoundTreshold)
 		# buyPrice = hp.round_decimals_down(db.SQLLookupBuyPrice(),0)
@@ -142,92 +142,19 @@ def TradeFunctionLong15M(coin, base, takeProfit, bbLowerBoundTreshold, mfiLongTr
 					stopLimitSellPrice = hp.round_decimals_down(buyPrice * (1 - (stopLimitSellPerc/100)),1)
 					stopLimitStatus = 'OPEN'
 					ocoSellOrderId = ef.OCOSellOrder(symbol, quantity, sellPrice, stopLimitSellPrice)
+					print('\n')
 					if ocoSellOrderId != False: #oco order succeeded
 						db.SQLInsertLongTrade(symbol, interval, orderId, timestamp, buyPrice, 0, 'NONE', sellPrice, status, quantity, ocoSellOrderId, stopLimitSellPerc, stopLimitSellPrice, stopLimitStatus)
 
 
 
-	status = ef.CheckOrderStatus(symbol, ocoSellOrderId)
-	if status == 'FILLED' or status == 'EXPIRED':
-		# print('SELL OCO %f is filled, close oco order' %ocoSellOrderId)
-		db.SQLCloseSellOCO(symbol)
+		status = ef.CheckOrderStatus(symbol, ocoSellOrderId)
+		if status != 'NEW': #OCO is closed or filled
+			db.SQLCloseSellOCO(symbol, status)
 
 
 
-		# # short strategy 15 min interval: buy back phase
-		# lastOrder = db.SQLLastLongTransaction(symbol)
-		# if lastOrder == False:
-		# 	pass
-		# else:
-		# 	buyPrice = lastOrder[0]
-		# 	sellPrice = lastOrder[1]
-		# 	quantity = lastOrder[2]
-		# 	if currentPrice > sellPrice and status == 'OPEN' and statusShort == 'FILLED':
-
-		# 		print('%s PHASE II LONG: MARKET SELL %s with profit %f percent at %f quantity %f' %(timestamp,coin, takeProfit, currentPrice, quantity))
-		# 		order = ef.SimpleSell(coin, base, quantity)
-		# 		if order != False:
-		# 			sellPrice = float(order['fills'][0]['price'])
-		# 			orderId = order['orderId'] 
-		# 			status = 'FILLED'
-		# 			db.SQLUpdateBuyBack(orderId, timestamp, sellPrice, status)
-		# 		else:
-		# 			print('phase II market sell failed...')
-
-
-
-
-# def TradeFunctionLong15M(coin, base, takeProfit, bbLowerBoundTreshold, mfiLongTreshold):
-# 	# long strategy 15 min interval: buy phase I
-# 	symbol = coin + base
-# 	interval = '15M'
-# 	timestamp = hp.TimeStamp()
-# 	symbol = coin + base
-# 	currentPrice = ef.PriceAction2(symbol)	
-
-# 	if currentPrice != False:
-# 		currentPrice = hp.round_decimals_down(currentPrice[3],0)
-# 		bb15 = ta.BBANDS_15M(coin, base)
-# 		bbLowerBound = ta.BBRangeToPercent(bb15, bbLowerBoundTreshold)
-		
-
-# 		lastOrder = db.SQLLastLongTransaction(symbol)
-# 		status = lastOrder[3]
-# 		lastShortOrder = db.SQLLastShortTransaction(symbol)
-# 		statusShort = lastShortOrder[3]
-# 		sellPrice = hp.round_decimals_down(db.SQLLookupSellPrice(),0)
 	
-# 		if currentPrice < bbLowerBound and status == 'FILLED' and statusShort == 'FILLED': #start new trade
-# 			mfi15 = ta.MFI_15M(coin, base)
-
-# 			if mfi15 < mfiLongTreshold:
-# 				quantity = ef.CheckBalance(coin)
-# 				quantity = ef.RoundStepSize(symbol, quantity, tradingBudget)
-# 				print('%s PHASE I LONG: MARKET BUY %s at %f quantity %f' %(timestamp, coin, currentPrice, quantity))
-# 				order = ef.SimpleBuy(coin, base, quantity)
-# 				buyPrice = float(order['fills'][0]['price'])
-# 				orderId = order['orderId']
-# 				sellPrice = hp.round_decimals_down(buyPrice * (1 + (takeProfit/100)),0)
-# 				status = 'OPEN'
-# 				db.SQLInsertLongTrade(symbol, interval, orderId, timestamp, buyPrice, 0, 'NONE', sellPrice, status, quantity)
-
-
-# 		#short strategy 15 min interval: buy back phase
-# 		orderData = db.SQLLastLongTransaction(symbol)
-# 		buyPrice = orderData[0]
-# 		sellPrice = orderData[1]
-# 		quantity = orderData[2]
-
-# 		if currentPrice > sellPrice and status == 'OPEN':
-
-# 			print('%s PHASE II LONG: MARKET SELL %s with profit %f percent at %f quantity %f' %(timestamp, coin, takeProfit, currentPrice, quantity))
-# 			order = ef.SimpleSell(coin, base, quantity)
-# 			sellPrice = float(order['fills'][0]['price'])
-# 			orderId = order['orderId'] 
-# 			status = 'FILLED'
-# 			db.SQLUpdateSellBack(orderId, timestamp, sellPrice, status)
-
-
 
 
 def UpdateBalance(coin, base, updateInterval):
