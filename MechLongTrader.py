@@ -17,8 +17,28 @@ import configdb as db
 
 
 
+
+
+#####
+updateInterval = 12
+interval = 1
+coin = 'BTC'
+base = 'USDC'
+takeProfit = 0.5
+stopLimitSellPerc = 5
+tradingBudgetPerc = 50
+quantityPrecision = 5
+pricePrecision = 2
+#####
+
+
+
+
+
 def MechLong(coin, base, tradingBudgetPerc, takeProfit, stopLimitSellPerc, quantityPrecision, pricePrecision):
 	symbol = coin + base
+	timestamp = str(hp.TimeStamp())
+
 	currentPrice = ef.PriceAction2(symbol)[3]
 	if currentPrice != False:
 		baseQuantity = ef.CheckBalance(base)
@@ -29,25 +49,35 @@ def MechLong(coin, base, tradingBudgetPerc, takeProfit, stopLimitSellPerc, quant
 			buyPrice = float(order['fills'][0]['price'])
 			orderId = order['orderId']
 			sellPrice = hp.round_decimals_down(buyPrice * (1 + (takeProfit/100)),pricePrecision)
-			status = 'OPEN'
+			status = 'FILLED'
 			stopLimitSellPrice = hp.round_decimals_down(buyPrice * (1 - (stopLimitSellPerc/100)), pricePrecision)
 			stopLimitStatus = 'OPEN'
 			ocoSellOrderId = ef.OCOSellOrder(symbol, tradeQuantity, sellPrice, stopLimitSellPrice)
-		# 	print('\n')
-		# if ocoBuyOrderId != False: #oco order succeeded
-		# 	db.SQLInsertShortTrade(symbol, interval, orderId, timestamp, sellPrice, 0, 'NONE', buyPrice, status, quantity, ocoBuyOrderId, stopLimitBuyPerc, stopLimitBuyPrice, stopLimitStatus)
-		# else:
-		# 	ocoBuyOrderId = 0
+			if ocoSellOrderId != False: #oco order succeeded
+				db.SQLInsertLongTrade(symbol, interval, orderId, timestamp, buyPrice, 0, 'NONE', sellPrice, status, tradeQuantity, ocoSellOrderId, stopLimitSellPerc, stopLimitSellPrice, stopLimitStatus)
+			else:
+				print('OCO SELL order not succeeded!')
+		else:
+			print('MechLong error: executing SimpleBuy function')
+	else:
+		print('MechLong error: executing PriceAction2') 
 
-#####
-takeProfit = 0.5
-stopLimitSellPerc = 5
-quantityPrecision = 5
-pricePrecision = 2
-coin = 'BTC'
-base = 'USDC'
-tradingBudgetPerc = 33
-#####
+
+def UpdateLongOCOStatus(coin, base):
+	symbol = coin + base
+	openOrders = db.SQLOpenSellOCO(symbol)
+	for orderId in openOrders:
+		order = ef.LookupOrder(symbol, orderId)
+		status = order['status']
+		if status == 'NEW':
+			pass
+		else:
+			db.SQLCloseSellOCO(status, symbol)
+			print('order %f updated' %orderId)
+
+
 
 MechLong(coin, base, tradingBudgetPerc, takeProfit, stopLimitSellPerc, quantityPrecision, pricePrecision)
+UpdateLongOCOStatus(coin, base)
+tf.UpdateBalance('BTC', 'USDC', updateInterval)
 

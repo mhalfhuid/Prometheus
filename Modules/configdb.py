@@ -313,7 +313,7 @@ def SQLLastLongTransaction(symbol):
 		# print('no last order found for this symbol')
 		return False
 
-# print(SQLLastLongTransaction('BTCUSDT'))
+
 
 
 
@@ -369,16 +369,57 @@ def SQLCloseBuyOCO(symbol, status):
 
 # SQLCloseBuyOCO('XMRBUSD')
 
-sql_close_sell_oco = """UPDATE LONGTRADE SET stopLimitStatus = ?, status = 'FILLED' 
-WHERE buyTransactTime IN (SELECT buyTransactTime FROM LONGTRADE WHERE symbol = ?)"""
-def SQLCloseSellOCO(symbol, status):
+sql_close_sell_oco = """UPDATE LONGTRADE
+SET stopLimitStatus = ?, status = 'FILLED'
+WHERE symbol = ?
+AND buyTransactTime in 
+    (
+        SELECT MAX(buyTransactTime)
+        FROM LONGTRADE
+    )"""
+
+def SQLCloseSellOCO(status, symbol):
 	cursor.execute(sql_close_sell_oco, (status, symbol))
 	connection.commit()
 
 
-# symbol = 'XMRBUSD'
-# ocoSellOrderId = 130701594
-# SQLCloseSellOCO(symbol, status)
+
+sql_close_buy_oco = """UPDATE SHORTTRADE
+SET stopLimitStatus = ?, status = 'FILLED'
+WHERE symbol = ?
+AND sellTransactTime in 
+    (
+        SELECT MAX(sellTransactTime)
+        FROM SHORTTRADE
+    )"""
+
+def SQLCloseBuyOCO(status, symbol):
+	cursor.execute(sql_close_buy_oco, (status, symbol))
+	connection.commit()
 
 
+# find all open sell oco's
+sql_open_sell_oco = """SELECT ocoSellOrderId FROM LONGTRADE WHERE stopLimitstatus = 'OPEN' AND symbol = ? """
+def SQLOpenSellOCO(symbol):
+	orderList = []
+	cursor.execute(sql_open_sell_oco, (symbol,))
+	result = cursor.fetchall()
+	for i in result:
+		orderList.append(i[0])
+	return orderList
+
+
+
+
+# find all open buy oco's
+sql_open_buy_oco = """SELECT ocoBuyOrderId FROM SHORTTRADE WHERE stopLimitstatus = 'OPEN' AND symbol = ? """
+def SQLOpenBuyOCO(symbol):
+	orderList = []
+	cursor.execute(sql_open_buy_oco, (symbol,))
+	result = cursor.fetchall()
+	for i in result:
+		orderList.append(i[0])
+	return orderList
+
+# print(SQLOpenBuyOCO('BTCUSDC'))
 

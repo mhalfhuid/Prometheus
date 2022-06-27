@@ -890,178 +890,179 @@ def GetLiveOrders(coin, base, maxnumber):
 	return liveOrderList
 
 
+
 # coin = 'ETH'
 # base = 'USDC'
 # print(GetLiveOrders(coin, base, 15))
 # print(order)
 
 
-def RenewBuyOrder(coin, base):
-	symbol = coin + base
-	orderList = db.SQLSelectOrder()
-	levelNumber = len(orderList)
-	i = 0
-	while i < levelNumber - 1:
-		order = orderList[i]
-		orderId = order[2]
-		priceOrder = int(order[4])
-		quantityOrder = float(order[5])
-		statusOrder = order[6]
-		sideOrder = order[7] 
+# def RenewBuyOrder(coin, base):
+# 	symbol = coin + base
+# 	orderList = db.SQLSelectOrder()
+# 	levelNumber = len(orderList)
+# 	i = 0
+# 	while i < levelNumber - 1:
+# 		order = orderList[i]
+# 		orderId = order[2]
+# 		priceOrder = int(order[4])
+# 		quantityOrder = float(order[5])
+# 		statusOrder = order[6]
+# 		sideOrder = order[7] 
 
-		nextOrder = orderList[i+1]
-		nexOrderId = nextOrder[2]	
-		priceNextOrder = int(nextOrder[4])
-		quantityNextOrder = float(nextOrder[5])
-		statusNextOrder = nextOrder[6]
-		sideNextOrder = nextOrder[7] 
+# 		nextOrder = orderList[i+1]
+# 		nexOrderId = nextOrder[2]	
+# 		priceNextOrder = int(nextOrder[4])
+# 		quantityNextOrder = float(nextOrder[5])
+# 		statusNextOrder = nextOrder[6]
+# 		sideNextOrder = nextOrder[7] 
 
-		if sideOrder == 'BUY' and statusOrder == 'FILLED':
-			if sideNextOrder == 'SELL' and statusNextOrder != 'FILLED':
-				timestamp = hp.TimeStamp()
-				print('%s buy order %f is filled, next sell order %f is not filled: waiting for sell order to be filled' %(timestamp, orderId, nexOrderId))
-			if sideNextOrder == 'SELL' and statusNextOrder == 'FILLED': #SCENARIO I: buy order is filled next sell order is filled create next buy order
-				currentPrice = PriceAction2(symbol)[3]
-				if priceOrder < currentPrice:
-					timestamp = hp.TimeStamp()
-					print('%s SCENARIO I: buy order %f is filled, next sell order %f is filled: renewing buy order' %(timestamp, orderId, nexOrderId))
-					renewOrder = SimpleLimitBuy(symbol, quantityOrder, priceOrder)
-					db.SQLDeleteOrder(orderId) # delere old order
-					time.sleep(10)
-					newOrder = LastOrderStatus(coin, base, 1)
-					newOrderId = newOrder[0]
-					newTransactTime = str(hp.EpochmsToDatetime(newOrder[4]))
-					db.SQLInsertOrder(symbol, newOrderId, newTransactTime, priceOrder, quantityOrder, 'NEW', 'BUY')
-			if sideNextOrder == 'BUY' and statusNextOrder == 'FILLED': #SCENARIO II: buy order is filled next buy order is filled create next sell order
-				currentPrice = PriceAction2(symbol)[3]
-				if currentPrice < priceNextOrder:
-					timestamp = hp.TimeStamp()
-					print('%s SCENARIO II: buy order %f is filled, next buy order %f is filled: renewing sell order' %(timestamp, orderId, nexOrderId))
-					renewOrder = SimpleLimitSell(symbol, quantityNextOrder, priceNextOrder)
-					db.SQLDeleteOrder(nexOrderId) # delere old order
-					time.sleep(10)
-					newOrder = LastOrderStatus(coin, base, 1)
-					newOrderId = newOrder[0]
-					newTransactTime = str(hp.EpochmsToDatetime(newOrder[4]))
-					db.SQLInsertOrder(symbol, newOrderId, newTransactTime, priceNextOrder, quantityNextOrder, 'NEW', 'SELL')
-
-
-		i+=1
+# 		if sideOrder == 'BUY' and statusOrder == 'FILLED':
+# 			if sideNextOrder == 'SELL' and statusNextOrder != 'FILLED':
+# 				timestamp = hp.TimeStamp()
+# 				print('%s buy order %f is filled, next sell order %f is not filled: waiting for sell order to be filled' %(timestamp, orderId, nexOrderId))
+# 			if sideNextOrder == 'SELL' and statusNextOrder == 'FILLED': #SCENARIO I: buy order is filled next sell order is filled create next buy order
+# 				currentPrice = PriceAction2(symbol)[3]
+# 				if priceOrder < currentPrice:
+# 					timestamp = hp.TimeStamp()
+# 					print('%s SCENARIO I: buy order %f is filled, next sell order %f is filled: renewing buy order' %(timestamp, orderId, nexOrderId))
+# 					renewOrder = SimpleLimitBuy(symbol, quantityOrder, priceOrder)
+# 					db.SQLDeleteOrder(orderId) # delere old order
+# 					time.sleep(10)
+# 					newOrder = LastOrderStatus(coin, base, 1)
+# 					newOrderId = newOrder[0]
+# 					newTransactTime = str(hp.EpochmsToDatetime(newOrder[4]))
+# 					db.SQLInsertOrder(symbol, newOrderId, newTransactTime, priceOrder, quantityOrder, 'NEW', 'BUY')
+# 			if sideNextOrder == 'BUY' and statusNextOrder == 'FILLED': #SCENARIO II: buy order is filled next buy order is filled create next sell order
+# 				currentPrice = PriceAction2(symbol)[3]
+# 				if currentPrice < priceNextOrder:
+# 					timestamp = hp.TimeStamp()
+# 					print('%s SCENARIO II: buy order %f is filled, next buy order %f is filled: renewing sell order' %(timestamp, orderId, nexOrderId))
+# 					renewOrder = SimpleLimitSell(symbol, quantityNextOrder, priceNextOrder)
+# 					db.SQLDeleteOrder(nexOrderId) # delere old order
+# 					time.sleep(10)
+# 					newOrder = LastOrderStatus(coin, base, 1)
+# 					newOrderId = newOrder[0]
+# 					newTransactTime = str(hp.EpochmsToDatetime(newOrder[4]))
+# 					db.SQLInsertOrder(symbol, newOrderId, newTransactTime, priceNextOrder, quantityNextOrder, 'NEW', 'SELL')
 
 
+# 		i+=1
 
-def RenewOrder(coin, base):
-	symbol = coin + base
-	orderList = db.SQLSelectVWOrder()
-	dummyList = [(0,'dummy',0,'dummy',0.0,'dummy','dummy', 'dummy')]
-	nextOrderList = orderList[1:] + dummyList
-	formerOrderList =  dummyList + orderList
 
-	# lookup current price
-	currentPrice = PriceAction2(symbol)[3]
+
+# def RenewOrder(coin, base):
+# 	symbol = coin + base
+# 	orderList = db.SQLSelectVWOrder()
+# 	dummyList = [(0,'dummy',0,'dummy',0.0,'dummy','dummy', 'dummy')]
+# 	nextOrderList = orderList[1:] + dummyList
+# 	formerOrderList =  dummyList + orderList
+
+# 	# lookup current price
+# 	currentPrice = PriceAction2(symbol)[3]
 	
-	# SCENARIO I: fromBUYtoBUY
-	fromBUYtoBUY = [currentOrder for currentOrder, nextOrder in zip(orderList, nextOrderList) \
-		if currentOrder[7] == 'BUY' and currentOrder[6] == 'FILLED' and nextOrder[7] == 'SELL' \
-		and nextOrder[6] == 'FILLED' and currentOrder[4] < currentPrice]
+# 	# SCENARIO I: fromBUYtoBUY
+# 	fromBUYtoBUY = [currentOrder for currentOrder, nextOrder in zip(orderList, nextOrderList) \
+# 		if currentOrder[7] == 'BUY' and currentOrder[6] == 'FILLED' and nextOrder[7] == 'SELL' \
+# 		and nextOrder[6] == 'FILLED' and currentOrder[4] < currentPrice]
 
-	# print('fromBUYtoBUY')
-	# print(fromBUYtoBUY)
-	# print('\n')
+# 	# print('fromBUYtoBUY')
+# 	# print(fromBUYtoBUY)
+# 	# print('\n')
 	
-	# SCENARIO II: fromBUYtoSELL
-	fromBUYtoSELL = [nextOrder for currentOrder, nextOrder in zip(orderList, nextOrderList) \
-		if nextOrder[7] == 'BUY' and nextOrder[6] == 'FILLED' and currentOrder[7] == 'BUY' \
-		and currentOrder[6] == 'FILLED' and currentPrice < nextOrder[4]]
+# 	# SCENARIO II: fromBUYtoSELL
+# 	fromBUYtoSELL = [nextOrder for currentOrder, nextOrder in zip(orderList, nextOrderList) \
+# 		if nextOrder[7] == 'BUY' and nextOrder[6] == 'FILLED' and currentOrder[7] == 'BUY' \
+# 		and currentOrder[6] == 'FILLED' and currentPrice < nextOrder[4]]
 
-	# print('fromBUYtoSELL')
-	# print(fromBUYtoSELL)
-	# print('\n')
+# 	# print('fromBUYtoSELL')
+# 	# print(fromBUYtoSELL)
+# 	# print('\n')
 
-	# SCENARIO III: fromSELLtoSELL
-	fromSELLtoSELL = [currentOrder for formerOrder, currentOrder in zip(formerOrderList, orderList) \
-		if formerOrder[7] == 'BUY' and formerOrder[6] == 'FILLED' and currentOrder[7] == 'SELL' \
-		and currentOrder[6] == 'FILLED' and currentPrice < currentOrder[4]]
+# 	# SCENARIO III: fromSELLtoSELL
+# 	fromSELLtoSELL = [currentOrder for formerOrder, currentOrder in zip(formerOrderList, orderList) \
+# 		if formerOrder[7] == 'BUY' and formerOrder[6] == 'FILLED' and currentOrder[7] == 'SELL' \
+# 		and currentOrder[6] == 'FILLED' and currentPrice < currentOrder[4]]
 
-	# print('fromSELLtoSELL')
-	# print(fromSELLtoSELL)
-	# print('\n')
+# 	# print('fromSELLtoSELL')
+# 	# print(fromSELLtoSELL)
+# 	# print('\n')
 
-	# SCENARIO IV: fromSELLtoBUY
-	fromSELLtoBUY = [currentOrder for currentOrder, nextOrder in zip(orderList, nextOrderList) \
-		if currentOrder[7] == 'SELL' and nextOrder[6] == 'FILLED' and nextOrder[7] == 'SELL' \
-		and currentOrder[6] == 'FILLED' and currentPrice > nextOrder[4] and currentPrice < currentOrder[4]]
+# 	# SCENARIO IV: fromSELLtoBUY
+# 	fromSELLtoBUY = [currentOrder for currentOrder, nextOrder in zip(orderList, nextOrderList) \
+# 		if currentOrder[7] == 'SELL' and nextOrder[6] == 'FILLED' and nextOrder[7] == 'SELL' \
+# 		and currentOrder[6] == 'FILLED' and currentPrice > nextOrder[4] and currentPrice < currentOrder[4]]
 
 
-	# print('fromSELLtoBUY')
-	# print(fromSELLtoBUY)
-	# print('\n')
+# 	# print('fromSELLtoBUY')
+# 	# print(fromSELLtoBUY)
+# 	# print('\n')
 
-	if len(fromBUYtoBUY) > 0:
-		currentOrderId = fromBUYtoBUY[0][2]
-		price = float(fromBUYtoBUY[0][4])
-		print(price)
-		print(type(price))
-		quantity = hp.round_decimals_down(float(fromBUYtoBUY[0][5]),5)
-		print(quantity)
-		print(type(quantity))
-		db.SQLDeleteOrder(currentOrderId) # delete old order		
-		SimpleLimitBuy(symbol, quantity, price)
-		time.sleep(5)
-		newOrder = LastOrderStatus(coin, base, 1)
-		newOrderId = newOrder[0]
-		newTransactTime = str(hp.EpochmsToDatetime(newOrder[4]))
-		db.SQLInsertOrder(symbol, newOrderId, newTransactTime, price, quantity, 'NEW', 'BUY')
+# 	if len(fromBUYtoBUY) > 0:
+# 		currentOrderId = fromBUYtoBUY[0][2]
+# 		price = float(fromBUYtoBUY[0][4])
+# 		print(price)
+# 		print(type(price))
+# 		quantity = hp.round_decimals_down(float(fromBUYtoBUY[0][5]),5)
+# 		print(quantity)
+# 		print(type(quantity))
+# 		db.SQLDeleteOrder(currentOrderId) # delete old order		
+# 		SimpleLimitBuy(symbol, quantity, price)
+# 		time.sleep(5)
+# 		newOrder = LastOrderStatus(coin, base, 1)
+# 		newOrderId = newOrder[0]
+# 		newTransactTime = str(hp.EpochmsToDatetime(newOrder[4]))
+# 		db.SQLInsertOrder(symbol, newOrderId, newTransactTime, price, quantity, 'NEW', 'BUY')
 
-	if len(fromBUYtoSELL) > 0:
-		currentOrderId = fromBUYtoSELL[0][2]
-		price = float(fromBUYtoSELL[0][4])
-		print(price)
-		print(type(price))
-		quantity = hp.round_decimals_down(float(fromBUYtoSELL[0][5]),5)
-		print(quantity)
-		print(type(quantity))
-		db.SQLDeleteOrder(currentOrderId) # delete old order
-		SimpleLimitSell(symbol, quantity, price)
-		time.sleep(5)
-		newOrder = LastOrderStatus(coin, base, 1)
-		newOrderId = newOrder[0]
-		newTransactTime = str(hp.EpochmsToDatetime(newOrder[4]))
-		db.SQLInsertOrder(symbol, newOrderId, newTransactTime, price, quantity, 'NEW', 'SELL')
+# 	if len(fromBUYtoSELL) > 0:
+# 		currentOrderId = fromBUYtoSELL[0][2]
+# 		price = float(fromBUYtoSELL[0][4])
+# 		print(price)
+# 		print(type(price))
+# 		quantity = hp.round_decimals_down(float(fromBUYtoSELL[0][5]),5)
+# 		print(quantity)
+# 		print(type(quantity))
+# 		db.SQLDeleteOrder(currentOrderId) # delete old order
+# 		SimpleLimitSell(symbol, quantity, price)
+# 		time.sleep(5)
+# 		newOrder = LastOrderStatus(coin, base, 1)
+# 		newOrderId = newOrder[0]
+# 		newTransactTime = str(hp.EpochmsToDatetime(newOrder[4]))
+# 		db.SQLInsertOrder(symbol, newOrderId, newTransactTime, price, quantity, 'NEW', 'SELL')
 
-	if len(fromSELLtoSELL) > 0:
-		print(fromSELLtoSELL)
-		currentOrderId = fromSELLtoSELL[0][2]
-		price = float(fromSELLtoSELL[0][4])
-		print(price)
-		print(type(price))
-		quantity = hp.round_decimals_down(float(fromSELLtoSELL[0][5]),5)
-		print(quantity)
-		print(type(quantity))
-		db.SQLDeleteOrder(currentOrderId) # delete old order
-		SimpleLimitSell(symbol, quantity, price)
-		time.sleep(5)
-		newOrder = LastOrderStatus(coin, base, 1)
-		newOrderId = newOrder[0]
-		newTransactTime = str(hp.EpochmsToDatetime(newOrder[4]))
-		db.SQLInsertOrder(symbol, newOrderId, newTransactTime, price, quantity, 'NEW', 'SELL')
+# 	if len(fromSELLtoSELL) > 0:
+# 		print(fromSELLtoSELL)
+# 		currentOrderId = fromSELLtoSELL[0][2]
+# 		price = float(fromSELLtoSELL[0][4])
+# 		print(price)
+# 		print(type(price))
+# 		quantity = hp.round_decimals_down(float(fromSELLtoSELL[0][5]),5)
+# 		print(quantity)
+# 		print(type(quantity))
+# 		db.SQLDeleteOrder(currentOrderId) # delete old order
+# 		SimpleLimitSell(symbol, quantity, price)
+# 		time.sleep(5)
+# 		newOrder = LastOrderStatus(coin, base, 1)
+# 		newOrderId = newOrder[0]
+# 		newTransactTime = str(hp.EpochmsToDatetime(newOrder[4]))
+# 		db.SQLInsertOrder(symbol, newOrderId, newTransactTime, price, quantity, 'NEW', 'SELL')
 
-	# if len(fromSELLtoBUY) > 0:
-	# 	print(fromSELLtoBUY)
-	# 	currentOrderId = fromSELLtoBUY[0][2]
-	# 	price = float(fromSELLtoBUY[0][4])
-	# 	print(price)
-	# 	print(type(price))
-	# 	quantity = hp.round_decimals_down(float(fromSELLtoBUY[0][5]),5)
-	# 	print(quantity)
-	# 	print(type(quantity))
-		# db.SQLDeleteOrder(currentOrderId) # delete old order
-		# SimpleLimitBuy(symbol, quantity, price)
-		# time.sleep(5)
-		# newOrder = LastOrderStatus(coin, base, 1)
-		# newOrderId = newOrder[0]
-		# newTransactTime = str(hp.EpochmsToDatetime(newOrder[4]))
-		# db.SQLInsertOrder(symbol, newOrderId, newTransactTime, price, quantity, 'NEW', 'BUY')
+# 	# if len(fromSELLtoBUY) > 0:
+# 	# 	print(fromSELLtoBUY)
+# 	# 	currentOrderId = fromSELLtoBUY[0][2]
+# 	# 	price = float(fromSELLtoBUY[0][4])
+# 	# 	print(price)
+# 	# 	print(type(price))
+# 	# 	quantity = hp.round_decimals_down(float(fromSELLtoBUY[0][5]),5)
+# 	# 	print(quantity)
+# 	# 	print(type(quantity))
+# 		# db.SQLDeleteOrder(currentOrderId) # delete old order
+# 		# SimpleLimitBuy(symbol, quantity, price)
+# 		# time.sleep(5)
+# 		# newOrder = LastOrderStatus(coin, base, 1)
+# 		# newOrderId = newOrder[0]
+# 		# newTransactTime = str(hp.EpochmsToDatetime(newOrder[4]))
+# 		# db.SQLInsertOrder(symbol, newOrderId, newTransactTime, price, quantity, 'NEW', 'BUY')
 
 
 # symbol = 'BTCBUSD'
@@ -1192,13 +1193,25 @@ def CheckOrderStatus(symbol, orderId):
 		status = False
 		return status
 		
-# symbol = 'XMRBUSD'
-# orderList = client.get_all_orders(symbol= symbol, limit = 100)
-# print(orderList)
+def LookupOrder(symbol, orderId):
+	try:
+		orderList = client.get_all_orders(symbol= symbol, limit = 100)
+		for order in orderList:
+			if order['orderId'] == orderId:
+				return order
 
-# symbol = 'XMRBUSD'
-# ocoSellOrderId = 130701594
-# # print(CheckOrderStatus('XMRBUSD', 130701594))
-# status = CheckOrderStatus(symbol, ocoSellOrderId)
-# if status != 'NEW': #OCO is closed or filled
-# 	db.SQLCloseSellOCO(symbol, status)
+	except BinanceAPIException as error:
+		print(error)
+		result = False
+		return status
+
+
+# symbol = 'BTCUSDC'
+# orderId = 1212046044
+# order = LookupOrder(symbol, orderId)
+# print(order)
+# orderId = 1210914341
+# order = LookupOrder(symbol, orderId)
+# print(order['status'])
+
+

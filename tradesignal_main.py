@@ -28,20 +28,23 @@ import trade_functions as tf
 api_key = '5520000262:AAHld11tzeG4C2SCGtquoCNhUlGJ7JSzspo'
 base_url = 'https://api.telegram.org/bot'
 POST_REQUEST = '/sendMessage'
-parameters = {
-	'chat_id': '-798640779', 
-	'text':'mfi bandwith overshoot'
-}
+
+# event = 'hello'
+# parameters = {
+# 	'chat_id': '-798640779', 
+# 	'text': event
+# }
 
 
-trade_interval = 20
+trade_interval = 60
 timeout = 5
-programDuration = 1
+programDuration = 36
 url = 'https://api.binance.com' #binance server
 program_end = datetime.now() + timedelta(hours = programDuration)
 coin = 'BTC'
 base = 'USDC'
 signal = 0
+event = 'Starting signaller..'
 
 
 # start main program
@@ -49,6 +52,8 @@ programStart = hp.TimeStamp()
 print('%s: Trade signaller' %programStart)
 
 
+
+symbol = 'BTCUSDC'
 
 while datetime.now() < program_end:
 	
@@ -58,16 +63,60 @@ while datetime.now() < program_end:
 		mfi15 = ta.MFI_15M(coin, base)
 		mfi01 = ta.MFI_01M(coin, base)
 
-		if (mfi01 > 80 or mfi01 < 20) and signal < 2:
-			response = requests.get(base_url + api_key + POST_REQUEST, data = parameters )
-			print(response.text)
-			print('mfi01: %f' %mfi01)
-			print('mfi15: %f' %mfi15)
-			signal += 1 
 
 		
+		# parameters = {
+		# 	'chat_id': '-798640779', 
+		# 	'text': event
+		# }
 
-		
+			
+
+
+		if mfi15 < 30 or mfi15 > 70:
+			event = 'mfi15 exceeds threshold'
+			parameters = {
+				'chat_id': '-798640779', 
+				'text': event
+			}
+
+			response = requests.get(base_url + api_key + POST_REQUEST, data = parameters)
+
+
+		if mfi01 < 30 or mfi01 > 70:
+			event = 'mfi01 exceeds threshold'
+			parameters = {
+				'chat_id': '-798640779', 
+				'text': event
+			}
+
+			response = requests.get(base_url + api_key + POST_REQUEST, data = parameters)
+
+
+
+			# btcBalance = ef.CheckBalanceTotal('BTC')
+			# event = 'btc total balance: ' + str(hp.round_decimals_down(btcBalance[1] + btcBalance[0],5))
+			# parameters = {
+			# 	'chat_id': '-798640779', 
+			# 	'text': event
+			# }
+			# response = requests.get(base_url + api_key + POST_REQUEST, data = parameters)
+
+			# time.sleep(10)
+
+
+
+			# usdcBalance = ef.CheckBalanceTotal('USDC')
+			# event = 'usdc total balance: ' + str(hp.round_decimals_down(usdcBalance[1] + usdcBalance[0],2))
+			# parameters = {
+			# 	'chat_id': '-798640779', 
+			# 	'text': event
+			# }
+			# response = requests.get(base_url + api_key + POST_REQUEST, data = parameters)
+
+
+
+			
 
 	except (requests.ConnectionError, requests.Timeout) as exception:
 		timestamp = hp.TimeStamp()

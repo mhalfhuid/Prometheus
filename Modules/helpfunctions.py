@@ -218,6 +218,8 @@ def TimeStampEpoch():
 	now = int(time.time())
 	return now
 
+	
+
 def TimeStampEpochMS():
 	now = int(time.time())
 	return now * 1000
